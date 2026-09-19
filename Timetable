@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Year 9 Timetable & Subject Inspector</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --modal-bg: rgba(15, 23, 42, 0.85);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 950px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+            color: var(--accent);
+        }
+
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .time-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .time-box .num {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .time-box .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 4px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .milestones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .milestone-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .milestone-card .num {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin: 5px 0;
+        }
+
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .subject-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .subject-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .subject-card .count {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-main);
+            margin: 8px 0;
+        }
+
+        .today-schedule-list li {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid var(--border);
+        }
+
+        .today-schedule-list li.completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            border-left-color: var(--text-muted);
+        }
+
+        .today-schedule-list li.active {
+            border-left-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background-color: #0f172a;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        input[type="text"], input[type="time"], input[type="date"], select {
+            flex: 1;
+            min-width: 130px;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            background: var(--border);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .room-tag {
+            color: var(--accent);
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .holiday-past {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+
+        .filter-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .override-box {
+            background: rgba(56, 189, 248, 0.05);
+            border: 1px dashed var(--accent);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* Classroom Inspector Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-bg);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            border: none;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        .close-btn:hover {
+            color: var(--text-main);
+        }
+
+        .room-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .room-list-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Term Live Countdown & Progress -->
+    <div class="card">
+        <h1 id="term-status">Year 9 Live Countdown</h1>
+        <div class="countdown-grid">
+            <div class="time-box"><span class="num" id="cd-days">00</span><span class="label">Days</span></div>
+            <div class="time-box"><span class="num" id="cd-hours">00</span><span class="label">Hours</span></div>
+            <div class="time-box"><span class="num" id="cd-mins">00</span><span class="label">Minutes</span></div>
+            <div class="time-box"><span class="num" id="cd-secs">00</span><span class="label">Seconds</span></div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="term-progress-bar"></div>
+        </div>
+        <div class="progress-text">
+            <span id="term-progress-label">Term Progress: 0%</span>
+            <span id="term-days-remaining">0 Days Remaining</span>
+        </div>
+
+        <div class="milestones-grid">
+            <div class="milestone-card">
+                <small>🎄 Term 4 End → Christmas</small>
+                <div class="num" id="days-christmas">0</div>
+                <small style="color: var(--text-muted)">Days Until Christmas (Dec 25)</small>
+                <div class="progress-container" style="margin-top: 10px;">
+                    <div class="progress-bar" id="xmas-progress-bar"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="xmas-progress-label">Progress: 0%</span>
+                </div>
+            </div>
+
+            <div class="milestone-card">
+                <small>🎆 Christmas → New Year</small>
+                <div class="num" id="days-newyear">0</div>
+                <small style="color: var(--text-muted)">Days Until New Year (Jan 1)</small>
+                <div class="progress-container" style="margin-top: 10px;">
+                    <div class="progress-bar" id="ny-progress-bar"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="ny-progress-label">Progress: 0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Live Schedule -->
+    <div class="card">
+        <h2>Today's Timetable <span id="today-cycle-label" style="font-size: 1rem; color: var(--text-muted);"></span></h2>
+        <ul id="today-schedule" class="today-schedule-list"></ul>
+    </div>
+
+    <!-- Remaining Subject Tallies Split by Term -->
+    <div class="card">
+        <h2>Remaining Year 9 Classes</h2>
+        <small style="color: var(--text-muted)">💡 Click on any subject card to view all assigned classroom locations.</small>
+        
+        <h3 style="margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Term 3 Remaining</h3>
+        <div class="subject-grid" id="subject-tallies-t3"></div>
+
+        <h3 style="margin-top: 25px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Term 4 Remaining</h3>
+        <div class="subject-grid" id="subject-tallies-t4"></div>
+    </div>
+
+    <!-- Specific Date Subject/Room Override Form -->
+    <div class="card">
+        <h2>Single-Day Room or Class Overrides</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Swap a subject, classroom, or class timing on a single date without changing your master schedule.</p>
+        <div class="override-box">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="date" id="override-date">
+                <input type="text" id="override-old" placeholder="Target Subject (e.g. Science)">
+                <input type="text" id="override-new" placeholder="New Subject (e.g. Exam)">
+                <input type="text" id="override-room" placeholder="New Room (e.g. Hall)">
+                <input type="time" id="override-start" title="New Start Time (Optional)">
+                <input type="time" id="override-end" title="New End Time (Optional)">
+                <button onclick="addOverride()">Apply Swap</button>
+            </div>
+        </div>
+        <ul id="override-list"></ul>
+    </div>
+
+    <!-- Add/Manage Master Timetable Schedule -->
+    <div class="card">
+        <h2>Manage Master Schedule & Classrooms</h2>
+        
+        <div class="filter-container">
+            <label for="filter-day" style="font-weight: bold; color: var(--accent);">View Day:</label>
+            <select id="filter-day" onchange="renderLists()">
+                <option value="1">Monday A</option>
+                <option value="2">Tuesday A</option>
+                <option value="3">Wednesday A</option>
+                <option value="4">Thursday A</option>
+                <option value="5">Friday A</option>
+                <option value="8">Monday B</option>
+                <option value="9">Tuesday B</option>
+                <option value="10">Wednesday B</option>
+                <option value="11">Thursday B</option>
+                <option value="12">Friday B</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="subj-name" placeholder="Subject (e.g. Science)">
+            <input type="text" id="subj-room" placeholder="Room (e.g. JWB203)">
+            <select id="subj-day">
+                <option value="1">Monday A</option>
+                <option value="2">Tuesday A</option>
+                <option value="3">Wednesday A</option>
+                <option value="4">Thursday A</option>
+                <option value="5">Friday A</option>
+                <option value="8">Monday B</option>
+                <option value="9">Tuesday B</option>
+                <option value="10">Wednesday B</option>
+                <option value="11">Thursday B</option>
+                <option value="12">Friday B</option>
+            </select>
+            <input type="time" id="subj-start" value="08:25">
+            <input type="time" id="subj-end" value="09:25">
+            <button onclick="addSchedulePeriod()">Add Period</button>
+        </div>
+        <ul id="schedule-list"></ul>
+    </div>
+
+    <!-- Manage Holidays -->
+    <div class="card">
+        <h2>Manage Holidays (2026)</h2>
+        <div class="form-group">
+            <input type="text" id="holiday-name" placeholder="Holiday Name">
+            <input type="date" id="holiday-date">
+            <button onclick="addHoliday()">Add Holiday</button>
+        </div>
+        <ul id="holiday-list"></ul>
+    </div>
+</div>
+
+<!-- Classroom Inspector Modal -->
+<div class="modal" id="roomModal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeRoomModal()">&times;</button>
+        <h2 id="modalSubjectTitle" style="margin-bottom: 5px;">Subject Inspector</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0; margin-bottom: 20px;">Assigned classrooms and scheduled periods across the fortnight:</p>
+        <div id="modalRoomList"></div>
+    </div>
+</div>
+
+<script>
+    const term3Start = new Date("2026-07-21T00:00:00");
+    const term3End = new Date("2026-09-25T15:15:00");
+    const term4Start = new Date("2026-10-13T00:00:00");
+    const term4End = new Date("2026-12-03T15:15:00");
+
+    const defaultHolidays = [
+        { name: "New Year's Day", date: "2026-01-01" },
+        { name: "Australia Day", date: "2026-01-26" },
+        { name: "Good Friday", date: "2026-04-03" },
+        { name: "Easter Saturday", date: "2026-04-04" },
+        { name: "Easter Monday", date: "2026-04-06" },
+        { name: "ANZAC Day", date: "2026-04-25" },
+        { name: "King's Birthday", date: "2026-06-08" },
+        { name: "Labour Day (NSW)", date: "2026-10-05" },
+        { name: "Staff Professional Development Day", date: "2026-10-12" },
+        { name: "Christmas Day", date: "2026-12-25" },
+        { name: "Boxing Day", date: "2026-12-26" }
+    ];
+
+    const defaultSchedule = [
+        // Monday A
+        { id: 1, name: "PDHPE", room: "Gym", day: 1, startTime: "08:25", endTime: "09:25" },
+        { id: 2, name: "English", room: "JWB203", day: 1, startTime: "09:30", endTime: "10:30" },
+        { id: 3, name: "Science", room: "MO117", day: 1, startTime: "10:55", endTime: "11:55" },
+        { id: 4, name: "Commerce", room: "KCC308", day: 1, startTime: "12:00", endTime: "13:00" },
+        { id: 5, name: "Chapel", room: "Chapel", day: 1, startTime: "13:05", endTime: "13:30" },
+        { id: 6, name: "History", room: "KCC310", day: 1, startTime: "14:15", endTime: "15:15" },
+
+        // Tuesday A
+        { id: 7, name: "Commerce", room: "LG1", day: 2, startTime: "08:25", endTime: "09:25" },
+        { id: 8, name: "History", room: "KCC310", day: 2, startTime: "09:30", endTime: "10:30" },
+        { id: 9, name: "Maths Advanced", room: "IDC03", day: 2, startTime: "10:55", endTime: "11:55" },
+        { id: 10, name: "Industrial Tech Metal", room: "R22", day: 2, startTime: "12:00", endTime: "13:00" },
+        { id: 11, name: "Year Meeting", room: "Lawson Centre", day: 2, startTime: "13:05", endTime: "13:30" },
+        { id: 12, name: "Sport", room: "Lawson Centre", day: 2, startTime: "14:15", endTime: "15:15" },
+
+        // Wednesday A
+        { id: 13, name: "Science", room: "MO321", day: 3, startTime: "08:25", endTime: "09:25" },
+        { id: 14, name: "Religion & Ethics", room: "JWB203", day: 3, startTime: "09:30", endTime: "10:30" },
+        { id: 15, name: "English", room: "MO117", day: 3, startTime: "10:55", endTime: "11:55" },
+        { id: 16, name: "Industrial Tech Metal", room: "R22", day: 3, startTime: "12:00", endTime: "13:00" },
+        { id: 17, name: "Geography", room: "KCC205", day: 3, startTime: "14:15", endTime: "15:15" },
+
+        // Thursday A
+        { id: 18, name: "English", room: "KCC304", day: 4, startTime: "08:25", endTime: "09:20" },
+        { id: 19, name: "Maths Advanced", room: "IDC03", day: 4, startTime: "09:25", endTime: "10:20" },
+        { id: 20, name: "Geography", room: "KCC205", day: 4, startTime: "10:45", endTime: "11:40" },
+        { id: 21, name: "Science", room: "MO214", day: 4, startTime: "11:45", endTime: "12:40" },
+        { id: 22, name: "Mentor Period", room: "MO206", day: 4, startTime: "13:05", endTime: "13:30" },
+        { id: 23, name: "Commerce", room: "LG1", day: 4, startTime: "14:15", endTime: "15:15" },
+
+        // Friday A
+        { id: 24, name: "Student Assembly", room: "Great Hall", day: 5, startTime: "08:25", endTime: "09:25" },
+        { id: 25, name: "Science", room: "MO214", day: 5, startTime: "09:30", endTime: "10:30" },
+        { id: 26, name: "Maths Advanced", room: "IDC03", day: 5, startTime: "10:55", endTime: "11:55" },
+        { id: 27, name: "PDHPE", room: "JWB207", day: 5, startTime: "12:00", endTime: "13:00" },
+        { id: 28, name: "School Assembly", room: "Great Hall", day: 5, startTime: "12:45", endTime: "13:30" },
+        { id: 29, name: "Industrial Tech Metal", room: "R22", day: 5, startTime: "14:15", endTime: "15:15" },
+
+        // Monday B
+        { id: 30, name: "History", room: "KCC310", day: 8, startTime: "08:25", endTime: "09:25" },
+        { id: 31, name: "Commerce", room: "LG1", day: 8, startTime: "09:30", endTime: "10:30" },
+        { id: 32, name: "PDHPE", room: "Gym", day: 8, startTime: "10:55", endTime: "11:55" },
+        { id: 33, name: "Geography", room: "KCC205", day: 8, startTime: "12:00", endTime: "13:00" },
+        { id: 34, name: "KnoxReads", room: "JWB207", day: 8, startTime: "13:05", endTime: "13:30" },
+        { id: 35, name: "Industrial Tech Metal", room: "R22", day: 8, startTime: "14:15", endTime: "15:15" },
+
+        // Tuesday B
+        { id: 36, name: "English", room: "MO202", day: 9, startTime: "08:25", endTime: "09:25" },
+        { id: 37, name: "Maths Advanced", room: "IDC03", day: 9, startTime: "09:30", endTime: "10:30" },
+        { id: 38, name: "PDHPE", room: "Weights Room", day: 9, startTime: "10:55", endTime: "11:55" },
+        { id: 39, name: "Geography", room: "KCC205", day: 9, startTime: "12:00", endTime: "13:00" },
+        { id: 40, name: "Year Meeting", room: "Lawson Centre", day: 9, startTime: "13:05", endTime: "13:30" },
+        { id: 41, name: "Sport", room: "Lawson Centre", day: 9, startTime: "14:15", endTime: "15:15" },
+
+        // Wednesday B
+        { id: 42, name: "Industrial Tech Metal", room: "R22", day: 10, startTime: "08:25", endTime: "09:25" },
+        { id: 43, name: "PDHPE", room: "JWB207", day: 10, startTime: "09:30", endTime: "10:30" },
+        { id: 44, name: "Science", room: "MO318", day: 10, startTime: "10:55", endTime: "11:55" },
+        { id: 45, name: "Commerce", room: "LG1", day: 10, startTime: "12:00", endTime: "13:00" },
+        { id: 46, name: "Mentor Period", room: "MO206", day: 10, startTime: "13:05", endTime: "13:30" },
+        { id: 47, name: "English", room: "MO117", day: 10, startTime: "14:15", endTime: "15:15" },
+
+        // Thursday B
+        { id: 48, name: "Maths Advanced", room: "IDC03", day: 11, startTime: "08:25", endTime: "09:25" },
+        { id: 49, name: "Industrial Tech Metal", room: "R22", day: 11, startTime: "09:30", endTime: "10:30" },
+        { id: 50, name: "History", room: "KCC310", day: 11, startTime: "10:55", endTime: "11:55" },
+        { id: 51, name: "Religion & Ethics", room: "JWB203", day: 11, startTime: "12:00", endTime: "13:00" },
+        { id: 52, name: "Mentor Period", room: "MO206", day: 11, startTime: "13:05", endTime: "13:30" },
+        { id: 53, name: "Science", room: "MO322", day: 11, startTime: "14:15", endTime: "15:15" },
+
+        // Friday B
+        { id: 54, name: "Student Assembly", room: "Great Hall", day: 12, startTime: "08:25", endTime: "09:25" },
+        { id: 55, name: "Science", room: "MO321", day: 12, startTime: "09:30", endTime: "10:30" },
+        { id: 56, name: "Commerce", room: "LG1", day: 12, startTime: "10:55", endTime: "11:55" },
+        { id: 57, name: "English", room: "JWB203", day: 12, startTime: "12:00", endTime: "13:00" },
+        { id: 58, name: "KnoxReads", room: "JWB203", day: 12, startTime: "13:05", endTime: "13:30" },
+        { id: 59, name: "Maths Advanced", room: "IDC03", day: 12, startTime: "14:15", endTime: "15:15" }
+    ];
+
+    const dayLabels = {
+        1: "Monday A", 2: "Tuesday A", 3: "Wednesday A", 4: "Thursday A", 5: "Friday A",
+        8: "Monday B", 9: "Tuesday B", 10: "Wednesday B", 11: "Thursday B", 12: "Friday B"
+    };
+
+    let schedule = JSON.parse(localStorage.getItem('schedule_v9_jayden')) || defaultSchedule;
+    let holidays = JSON.parse(localStorage.getItem('holidays_v4')) || defaultHolidays;
+    let overrides = JSON.parse(localStorage.getItem('overrides_v4')) || [];
+
+    function saveData() {
+        localStorage.setItem('schedule_v9_jayden', JSON.stringify(schedule));
+        localStorage.setItem('holidays_v4', JSON.stringify(holidays));
+        localStorage.setItem('overrides_v4', JSON.stringify(overrides));
+        renderLists();
+        renderTodaySchedule();
+        calculateSubjectCounts();
+    }
+
+    function addSchedulePeriod() {
+        const name = document.getElementById('subj-name').value.trim();
+        const room = document.getElementById('subj-room').value.trim() || 'TBA';
+        const day = parseInt(document.getElementById('subj-day').value);
+        const startTime = document.getElementById('subj-start').value;
+        const endTime = document.getElementById('subj-end').value;
+
+        if (!name || !startTime || !endTime) return alert('Fill in all required fields');
+
+        schedule.push({ id: Date.now(), name, room, day, startTime, endTime });
+        document.getElementById('subj-name').value = '';
+        document.getElementById('subj-room').value = '';
+        saveData();
+    }
+
+    function removeSchedulePeriod(id) {
+        schedule = schedule.filter(s => s.id !== id);
+        saveData();
+    }
+
+    function addHoliday() {
+        const name = document.getElementById('holiday-name').value.trim();
+        const date = document.getElementById('holiday-date').value;
+
+        if (!name || !date) return alert('Fill in holiday details');
+
+        holidays.push({ name, date });
+        document.getElementById('holiday-name').value = '';
+        document.getElementById('holiday-date').value = '';
+        saveData();
+    }
+
+    function removeHoliday(index) {
+        holidays.splice(index, 1);
+        saveData();
+    }
+
+    function addOverride() {
+        const date = document.getElementById('override-date').value;
+        const oldSubject = document.getElementById('override-old').value.trim();
+        const newSubject = document.getElementById('override-new').value.trim();
+        const room = document.getElementById('override-room').value.trim();
+        const startTime = document.getElementById('override-start').value;
+        const endTime = document.getElementById('override-end').value;
+
+        if (!date || !oldSubject || !newSubject) return alert('Fill in required date, target subject, and new subject fields.');
+
+        overrides.push({ id: Date.now(), date, oldSubject, newSubject, room, startTime, endTime });
+        document.getElementById('override-old').value = '';
+        document.getElementById('override-new').value = '';
+        document.getElementById('override-room').value = '';
+        document.getElementById('override-start').value = '';
+        document.getElementById('override-end').value = '';
+        saveData();
+    }
+
+    function removeOverride(id) {
+        overrides = overrides.filter(o => o.id !== id);
+        saveData();
+    }
+
+    function renderLists() {
+        const schedList = document.getElementById('schedule-list');
+        const selectedDay = parseInt(document.getElementById('filter-day').value);
+        schedList.innerHTML = '';
+
+        const filteredSchedule = schedule.filter(s => s.day === selectedDay);
+        filteredSchedule.sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+
+        if (filteredSchedule.length === 0) {
+            schedList.innerHTML = '<li style="color: var(--text-muted)">No periods scheduled for this day.</li>';
+        } else {
+            filteredSchedule.forEach(s => {
+                schedList.innerHTML += `
+                    <li>
+                        <span><strong>${s.name}</strong> <span class="room-tag">[${s.room || 'TBA'}]</span> (${s.startTime || '08:25'} - ${s.endTime})</span>
+                        <button class="btn-danger" onclick="removeSchedulePeriod(${s.id})">Delete</button>
+                    </li>`;
+            });
+        }
+
+        const holList = document.getElementById('holiday-list');
+        holList.innerHTML = '';
+        holidays.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
+        holidays.forEach((h, idx) => {
+            const isPast = h.date < todayStr;
+            holList.innerHTML += `
+                <li class="${isPast ? 'holiday-past' : ''}">
+                    <span><strong>${h.name}</strong> - ${h.date} ${isPast ? '(Ended)' : ''}</span>
+                    <button class="btn-danger" onclick="removeHoliday(${idx})">Delete</button>
+                </li>`;
+        });
+
+        const ovrList = document.getElementById('override-list');
+        ovrList.innerHTML = '';
+        overrides.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        if (overrides.length === 0) {
+            ovrList.innerHTML = '<li style="color: var(--text-muted)">No single-day overrides added.</li>';
+        } else {
+            overrides.forEach(o => {
+                const roomInfo = o.room ? ` (Room: ${o.room})` : '';
+                const timeInfo = (o.startTime && o.endTime) ? ` [${o.startTime} - ${o.endTime}]` : '';
+                ovrList.innerHTML += `
+                    <li>
+                        <span><strong>${o.date}</strong>: Swap "${o.oldSubject}" → "<strong>${o.newSubject}</strong>"${roomInfo}${timeInfo}</span>
+                        <button class="btn-danger" onclick="removeOverride(${o.id})">Delete</button>
+                    </li>`;
+            });
+        }
+    }
+
+    function getCycleDay(dateObj) {
+        const dayNum = dateObj.getDay();
+        if (dayNum === 0 || dayNum === 6) return null;
+
+        const anchorMonA = new Date("2026-07-20T00:00:00");
+        const currentMon = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        currentMon.setDate(currentMon.getDate() - (dayNum - 1));
+
+        const diffWeeks = Math.round((currentMon - anchorMonA) / (1000 * 60 * 60 * 24 * 7));
+        const isWeekB = Math.abs(diffWeeks) % 2 !== 0;
+
+        return isWeekB ? dayNum + 7 : dayNum;
+    }
+
+    function getPeriodsForDate(dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        const cycleDay = getCycleDay(dateObj);
+        if (!cycleDay) return [];
+
+        let basePeriods = schedule.filter(s => s.day === cycleDay);
+        let dayOverrides = overrides.filter(o => o.date === dateStr);
+
+        return basePeriods.map(period => {
+            let ovr = dayOverrides.find(o => o.oldSubject.toLowerCase() === period.name.toLowerCase());
+            if (ovr) {
+                return {
+                    ...period,
+                    name: ovr.newSubject,
+                    room: ovr.room ? ovr.room : period.room,
+                    startTime: ovr.startTime ? ovr.startTime : period.startTime,
+                    endTime: ovr.endTime ? ovr.endTime : period.endTime
+                };
+            }
+            return period;
+        });
+    }
+
+    function renderTodaySchedule() {
+        const now = new Date();
+        const cycleDay = getCycleDay(now);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        const isHoliday = holidays.some(h => h.date === todayStr);
+        const container = document.getElementById('today-schedule');
+        const label = document.getElementById('today-cycle-label');
+
+        if (isHoliday) {
+            label.innerText = "(Holiday Today)";
+            container.innerHTML = "<li>No classes today — School Holiday!</li>";
+            return;
+        }
+
+        if (!cycleDay) {
+            label.innerText = "(Weekend)";
+            container.innerHTML = "<li>No classes today — Weekend!</li>";
+            return;
+        }
+
+        label.innerText = `(${dayLabels[cycleDay]})`;
+
+        const todaysPeriods = getPeriodsForDate(now);
+        todaysPeriods.sort((a, b) => (a.startTime || '08:25').localeCompare(b.startTime || '08:25'));
+
+        if (todaysPeriods.length === 0) {
+            container.innerHTML = "<li>No periods scheduled for today.</li>";
+            return;
+        }
+
+        container.innerHTML = '';
+        todaysPeriods.forEach(p => {
+            const [startH, startM] = (p.startTime || '08:25').split(':').map(Number);
+            const [endH, endM] = p.endTime.split(':').map(Number);
+
+            const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startH, startM, 0);
+            const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM, 0);
+
+            let statusClass = '';
+            let statusBadge = 'Upcoming';
+
+            if (now > endTime) {
+                statusClass = 'completed';
+                statusBadge = 'Completed';
+            } else if (now >= startTime && now <= endTime) {
+                statusClass = 'active';
+                statusBadge = 'In Progress';
+            }
+
+            container.innerHTML += `
+                <li class="${statusClass}">
+                    <span><strong>${p.name}</strong> <span class="room-tag">[${p.room || 'TBA'}]</span> (${p.startTime || '08:25'} - ${p.endTime})</span>
+                    <span class="badge">${statusBadge}</span>
+                </li>`;
+        });
+    }
+
+    function countPeriodsForTerm(termStart, termEnd) {
+        const now = new Date();
+        const holidayDates = holidays.map(h => h.date);
+        let counts = {};
+
+        let current = new Date(termStart.getFullYear(), termStart.getMonth(), termStart.getDate());
+        const lastDay = new Date(termEnd.getFullYear(), termEnd.getMonth(), termEnd.getDate());
+
+        while (current <= lastDay) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${d}`;
+
+            const cycleDay = getCycleDay(current);
+
+            if (cycleDay && !holidayDates.includes(dateStr)) {
+                const todaysPeriods = getPeriodsForDate(current);
+
+                todaysPeriods.forEach(p => {
+                    const [hours, minutes] = p.endTime.split(':').map(Number);
+                    const periodEnd = new Date(current.getFullYear(), current.getMonth(), current.getDate(), hours, minutes, 0);
+
+                    if (now < periodEnd) {
+                        counts[p.name] = (counts[p.name] || 0) + 1;
+                    }
+                });
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return counts;
+    }
+
+    function renderSubjectGrid(containerId, counts) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        if (Object.keys(counts).length === 0) {
+            container.innerHTML = '<div style="color: var(--text-muted); padding: 10px 0;">No remaining periods for this term.</div>';
+            return;
+        }
+
+        const sortedSubjects = Object.keys(counts).sort();
+
+        for (const subject of sortedSubjects) {
+            const card = document.createElement('div');
+            card.className = 'subject-card';
+            card.onclick = () => openRoomModal(subject);
+            card.innerHTML = `
+                <small>${subject}</small>
+                <div class="count">${counts[subject]}</div>
+                <small style="color: var(--text-muted)">periods remaining</small>`;
+            container.appendChild(card);
+        }
+    }
+
+    function openRoomModal(subjectName) {
+        const modal = document.getElementById('roomModal');
+        const title = document.getElementById('modalSubjectTitle');
+        const list = document.getElementById('modalRoomList');
+
+        title.innerText = subjectName;
+        list.innerHTML = '';
+
+        const subjectPeriods = schedule.filter(s => s.name.toLowerCase() === subjectName.toLowerCase());
+        subjectPeriods.sort((a, b) => a.day - b.day || (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+
+        if (subjectPeriods.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted)">No specific rooms assigned in master timetable.</p>';
+        } else {
+            subjectPeriods.forEach(p => {
+                list.innerHTML += `
+                    <div class="room-list-item">
+                        <div>
+                            <strong>${dayLabels[p.day]}</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${p.startTime || '08:25'} - ${p.endTime}</div>
+                        </div>
+                        <div class="room-tag" style="font-size: 1.1rem;">${p.room || 'TBA'}</div>
+                    </div>`;
+            });
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function closeRoomModal() {
+        document.getElementById('roomModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('roomModal');
+        if (event.target === modal) {
+            closeRoomModal();
+        }
+    };
+
+    function calculateSubjectCounts() {
+        const t3Counts = countPeriodsForTerm(term3Start, term3End);
+        const t4Counts = countPeriodsForTerm(term4Start, term4End);
+
+        renderSubjectGrid('subject-tallies-t3', t3Counts);
+        renderSubjectGrid('subject-tallies-t4', t4Counts);
+    }
+
+    function updateCountdown() {
+        const now = new Date();
+        let target = term3End;
+        let termStartRef = term3Start;
+        let statusText = "Term 3 Ends In:";
+
+        if (now < term3Start) {
+            target = term3Start;
+            statusText = "Term 3 Starts In:";
+        } else if (now > term3End && now < term4Start) {
+            target = term4Start;
+            termStartRef = term3End;
+            statusText = "Term Break! Term 4 Starts In:";
+        } else if (now >= term4Start && now <= term4End) {
+            target = term4End;
+            termStartRef = term4Start;
+            statusText = "Term 4 Ends In:";
+        } else if (now > term4End) {
+            document.getElementById('term-status').innerText = "Year 9 Completed! 🎉";
+        }
+
+        document.getElementById('term-status').innerText = statusText;
+
+        const diff = target - now;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById('cd-days').innerText = String(Math.max(0, days)).padStart(2, '0');
+        document.getElementById('cd-hours').innerText = String(Math.max(0, hours)).padStart(2, '0');
+        document.getElementById('cd-mins').innerText = String(Math.max(0, mins)).padStart(2, '0');
+        document.getElementById('cd-secs').innerText = String(Math.max(0, secs)).padStart(2, '0');
+
+        const totalTermDuration = target - termStartRef;
+        const elapsed = now - termStartRef;
+        let pct = Math.min(100, Math.max(0, (elapsed / totalTermDuration) * 100));
+
+        document.getElementById('term-progress-bar').style.width = pct.toFixed(1) + '%';
+        document.getElementById('term-progress-label').innerText = `Term Progress: ${pct.toFixed(1)}%`;
+        document.getElementById('term-days-remaining').innerText = `${Math.max(0, days)} Days Remaining`;
+
+        const christmasDate = new Date("2026-12-25T00:00:00");
+        const newYearDate = new Date("2027-01-01T00:00:00");
+
+        const daysToXmas = Math.ceil((christmasDate - now) / (1000 * 60 * 60 * 24));
+        const daysToNY = Math.ceil((newYearDate - now) / (1000 * 60 * 60 * 24));
+
+        document.getElementById('days-christmas').innerText = Math.max(0, daysToXmas);
+        document.getElementById('days-newyear').innerText = Math.max(0, daysToNY);
+
+        const xmasTotalDuration = christmasDate - term4End;
+        const xmasElapsed = now - term4End;
+        let xmasPct = Math.min(100, Math.max(0, (xmasElapsed / xmasTotalDuration) * 100));
+        
+        document.getElementById('xmas-progress-bar').style.width = xmasPct.toFixed(1) + '%';
+        document.getElementById('xmas-progress-label').innerText = `Progress: ${xmasPct.toFixed(1)}%`;
+
+        const nyTotalDuration = newYearDate - christmasDate;
+        const nyElapsed = now - christmasDate;
+        let nyPct = Math.min(100, Math.max(0, (nyElapsed / nyTotalDuration) * 100));
+
+        document.getElementById('ny-progress-bar').style.width = nyPct.toFixed(1) + '%';
+        document.getElementById('ny-progress-label').innerText = `Progress: ${nyPct.toFixed(1)}%`;
+
+        renderTodaySchedule();
+        calculateSubjectCounts();
+    }
+
+    renderLists();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+</script>
+
+</body>
+</html>
